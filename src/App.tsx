@@ -1,36 +1,60 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
+import { FormEvent, useEffect, useState } from 'react';
+import CreateStickyNote from '../src/components/CreateStickyNote';
+import StickyNote from '../src/components/StickyNote';
+import { StickyNoteModel } from '../src/models/StickyNote';
+import api from '../src/services/api';
 
-function App() {
-  const [count, setCount] = useState(0);
+const Home = () => {
+  const [stickyNotes, setStickyNotes] = useState<StickyNoteModel[]>([]);
+
+  useEffect(() => {
+    fetchStickyNotes();
+  }, []);
+
+  function fetchStickyNotes() {
+    api.get('sticky-notes').then((res) => setStickyNotes(res.data));
+  }
+
+  function deleteStickyNote(id: number) {
+    api.delete(`sticky-notes/${id}`).then(() => fetchStickyNotes());
+  }
+
+  function updateStickyNote(stickyNote: StickyNoteModel) {
+    return async (event: FormEvent) => {
+      event.preventDefault();
+
+      const { id, title, description } = stickyNote;
+      const data = new FormData();
+
+      data.append('id', String(id));
+      data.append('title', title);
+      data.append('description', description);
+
+      await api.put('sticky-notes', data);
+
+      fetchStickyNotes();
+
+      alert('Sticky Note updated successfully!');
+    };
+  }
 
   return (
-    <>
-      <h1 className="text-3xl font-bold underline">Hello world!</h1>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className="flex min-h-screen flex-col items-center justify-center py-2">
+      <main className="flex w-full flex-1 flex-col items-center justify-center px-20 text-center">
+        <CreateStickyNote onCreateStickyNote={fetchStickyNotes} />
+        <div className="mt-6 flex max-w-4xl flex-wrap items-center justify-around sm:w-full">
+          {stickyNotes.map((stickyNote) => (
+            <StickyNote
+              key={stickyNote.id}
+              stickyNote={stickyNote}
+              onDelete={deleteStickyNote}
+              onUpdate={updateStickyNote}
+            />
+          ))}
+        </div>
+      </main>
+    </div>
   );
-}
+};
 
-export default App;
+export default Home;
