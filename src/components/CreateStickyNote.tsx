@@ -1,5 +1,6 @@
 import React, { FormEvent, useState } from "react";
 import api from "../services/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface CreateStickyNoteProps {
   onCreateStickyNote: () => void;
@@ -8,22 +9,27 @@ interface CreateStickyNoteProps {
 export default function CreateStickyNote(props: CreateStickyNoteProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const queryClient = useQueryClient();
 
-  async function handleSubmit(event: FormEvent) {
+  const createStickyNoteMutation = useMutation({
+    mutationFn: async () => {
+      const data = new FormData();
+      data.append("title", title);
+      data.append("description", description);
+      await api.post("sticky-notes", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stickyNotes"] });
+      setTitle("");
+      setDescription("");
+      props.onCreateStickyNote();
+      alert("Sticky Note created successfully!");
+    },
+  });
+
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const data = new FormData();
-
-    data.append("title", title);
-    data.append("description", description);
-
-    await api.post("sticky-notes", data);
-
-    setTitle("");
-    setDescription("");
-
-    props.onCreateStickyNote();
-
-    alert("Sticky Note created successfully!");
+    createStickyNoteMutation.mutate();
   }
 
   return (
